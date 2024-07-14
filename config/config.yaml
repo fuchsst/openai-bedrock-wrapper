@@ -1,0 +1,9 @@
+api_keys:
+  093cb8a8-09fd-44e8-aca8-23c31ce04ec5:
+    endpoint: https://bedrock.eu-west-3.amazonaws.com
+    model_id: anthropic.claude-3-haiku-20240307-v1:0
+    aim_role: arn:aws:iam::252196637712:role/service-role/AmazonBedrockExecutionRoleForAgents_M34WH05JT1O
+  337ee55d-b6b5-4d36-926c-d960b6732df8:
+    endpoint: https://bedrock.eu-central-1.amazonaws.com
+    model_id: anthropic.claude-3-sonnet-20240229-v1:0
+    aim_role: arn:aws:iam::252196637712:role/service-role/AmazonBedrockExecutionRoleForAgents_M34WH05JT1O
