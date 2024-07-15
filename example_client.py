@@ -34,7 +34,7 @@ def chat_with_model():
 
         if response.status_code == 200:
             response_data = response.json()
-            assistant_message = response_data['messages'][0]['content']
+            assistant_message = response_data['choices'][0]['message']['content']
             print(f"Model: {assistant_message}")
             conversation_history.append({"role": "assistant", "content": assistant_message})
         else:

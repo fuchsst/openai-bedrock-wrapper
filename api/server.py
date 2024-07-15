@@ -24,7 +24,7 @@ def chatgpt_to_bedrock(messages: List[Dict[str, str]]):
     return [{
         "role": message["role"],
         "content": [{
-            # "type": "text",
+            "type": "text",
             "text": message["content"]
         }]
     } for message in messages]
@@ -32,16 +32,25 @@ def chatgpt_to_bedrock(messages: List[Dict[str, str]]):
 
 def bedrock_to_chatgpt(response: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        "id": str(uuid.uuid4()),
+        "id": response["id"],
         "object": "chat.completion",
         "created": int(time.time() * 1000),
-        "model": "gpt-4o",
+        "model": response["model"],
         "system_fingerprint": "fp_44709d6fcb",
-        "choices": response["output"]["message"]["content"],
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": response["role"],
+                    "content": response["content"][0]["text"],
+                },
+                "finish_reason": response["stop_reason"],
+            }
+        ],
         "usage": {
-            "prompt_tokens": 9,
-            "completion_tokens": 12,
-            "total_tokens": 21
+            "prompt_tokens": response["usage"]["input_tokens"],
+            "completion_tokens": response["usage"]["output_tokens"],
+            "total_tokens": response["usage"]["input_tokens"]+response["usage"]["output_tokens"]
         }
     }
 
@@ -93,26 +102,30 @@ def handle_request(request_data,
     bedrock_client = boto3.client(
         'bedrock-runtime',
         region_name=region_name,
-        endpoint_url=endpoint,
         aws_access_key_id=credentials['AccessKeyId'],
         aws_secret_access_key=credentials['SecretAccessKey'],
         aws_session_token=credentials['SessionToken']
     )
 
-    bedrock_msg_list = chatgpt_to_bedrock(request_data['messages'])
+    request_body = {
+        'anthropic_version': "bedrock-2023-05-31",
+        'messages': chatgpt_to_bedrock(request_data['messages']),
+        'max_tokens': request_data.get('max_tokens', 512),
+        'temperature': request_data.get('temperature', 0.3),
+        'top_p': request_data.get('top_p', 0.999)
+    }
+    print(request_body)
 
-    response = bedrock_client.converse(
+    response = bedrock_client.invoke_model(
         modelId=model_id,
-        messages=bedrock_msg_list,
-        inferenceConfig={
-            "maxTokens": request_data.get('max_tokens', 512),
-            "temperature": request_data.get('temperature', 0.3),
-            "topP": request_data.get('top_p', 0.999)
-        }
+        contentType='application/json',
+        accept='application/json',
+        body=json.dumps(request_body).encode('utf-8')
     )
+    response_model_output = json.loads(response['body'].read().decode('utf-8'))
 
-    print(json.dumps(response))
-    return bedrock_to_chatgpt(response)
+    print(response_model_output)
+    return bedrock_to_chatgpt(response_model_output)
 
 
 if __name__ == '__main__':
